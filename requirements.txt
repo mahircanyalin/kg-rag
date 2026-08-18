@@ -1,0 +1,12 @@
+openai
+   neo4j
+   psycopg2-binary
+   pgvector
+   python-dotenv
+   sentence-transformers
+   langchain
+   fastapi
+   uvicorn
+   pydantic
+   requests
+   beautifulsoup4
