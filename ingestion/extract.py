@@ -69,6 +69,21 @@ Relationship usage guide:
 - HAS_EXECUTIVE: Apple has a named executive
 - ACQUIRED: Apple acquired a named company
 
+RELATIONSHIP DIRECTION — always Apple-centric:
+- Relationships flow FROM Apple TO the target. Apple is almost always the source.
+- NEVER write (OtherCompany)-[HAS_EXECUTIVE]->(Apple). An auditor, supplier, or
+  partner is not an executive of Apple.
+- HAS_EXECUTIVE target must be a named PERSON, never a company or firm.
+
+TYPE CONSISTENCY:
+- A law or act (Digital Markets Act, Exchange Act, Sarbanes-Oxley) is NOT a Regulator
+  and NOT a RiskFactor. Skip it. The BODY that enforces it (European Commission, SEC)
+  is the Regulator.
+- REGULATED_BY target must be a named BODY or AUTHORITY (SEC, European Commission,
+  Department of Justice). NEVER a country, region, or continent.
+- A continent or region (United States, Europe, European Union) is a Location, never
+  a Regulator.
+  
 Return ONLY valid JSON, no markdown, no explanation.
 Output JSON schema:
 {{
@@ -84,13 +99,13 @@ Output JSON schema:
 def extract_from_chunk(chunk_text: str):
     """Tek bir chunk'tan varlık ve ilişki çıkarır."""
     resp = client.chat.completions.create(
-        model="gpt-4o-mini",
-        temperature=0,  # tutarlılık için sıfır
+        model="gpt-4o",  # gpt-4o-mini -> gpt-4o
+        temperature=0,
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": chunk_text},
         ],
-        response_format={"type": "json_object"},  # JSON zorla
+        response_format={"type": "json_object"},
     )
 
     raw = resp.choices[0].message.content
@@ -141,8 +156,7 @@ def extract_all(chunks, start_index=25, cache_path="data/extractions.json"):
                 data, usage = extract_from_chunk(chunk["text"])
                 data = validate_extraction(data)
 
-                cost = (usage.prompt_tokens * 0.15 +
-                        usage.completion_tokens * 0.60) / 1_000_000
+                cost = (usage.prompt_tokens * 2.50 + usage.completion_tokens * 10.0) / 1_000_000
                 total_cost += cost
 
                 # chunk_id'yi her ilişkiye ekle (izlenebilirlik!)
@@ -176,5 +190,4 @@ def extract_all(chunks, start_index=25, cache_path="data/extractions.json"):
 if __name__ == "__main__":
     with open("/Users/canyalinn/PycharmProjects/kg-rag/ingestion/data/apple_chunks.json", "r", encoding="utf-8") as f:
         chunks = json.load(f)
-
-    extract_all(chunks, start_index=25)
+    extract_all(chunks, start_index=17)

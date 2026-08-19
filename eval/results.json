@@ -59,7 +59,7 @@
     "question": "Is Apple regulated by the SEC?",
     "hops": 1,
     "hybrid_correct": true,
-    "baseline_correct": true,
+    "baseline_correct": false,
     "route": "graph"
   },
   {
@@ -170,21 +170,21 @@
   {
     "question": "Who is Apple's auditor?",
     "hops": 1,
-    "hybrid_correct": false,
+    "hybrid_correct": true,
     "baseline_correct": true,
     "route": "graph"
   },
   {
     "question": "Which countries where Apple manufactures are also regulatory concerns?",
     "hops": 2,
-    "hybrid_correct": true,
+    "hybrid_correct": false,
     "baseline_correct": false,
     "route": "graph"
   },
   {
     "question": "What risks are related to countries where Apple manufactures?",
     "hops": 2,
-    "hybrid_correct": true,
+    "hybrid_correct": false,
     "baseline_correct": false,
     "route": "graph"
   },

@@ -1,7 +1,7 @@
 import json
 from collections import defaultdict
 
-with open("/Users/canyalinn/PycharmProjects/kg-rag/ingestion/data/extractions.json", "r", encoding="utf-8") as f:
+with open("/Users/canyalinn/PycharmProjects/kg-rag/ingestion/data/resolved.json", "r", encoding="utf-8") as f:
     results = json.load(f)
 
 by_type = defaultdict(set)

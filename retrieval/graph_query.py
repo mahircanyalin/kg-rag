@@ -49,34 +49,16 @@ QUERY_TEMPLATES = {
 }
 # Multi-hop şablonları: iki ilişkiyi birleştiren zincir/kesişim sorguları
 MULTIHOP_TEMPLATES = {
-    "MANUFACTURE_AND_REGULATED": """
+    # GERÇEK KESİŞİM: hem üretim hem operasyon olan yerler
+    "MANUFACTURE_AND_OPERATE": """
         MATCH (a:Company {name: $entity})-[r1:MANUFACTURES_IN]->(loc)
-        MATCH (a)-[r2:REGULATED_BY]->(loc)
-        RETURN loc.name AS result, r1.chunk_id AS chunk_id
+        MATCH (a)-[r2:OPERATES_IN]->(loc)
+        RETURN DISTINCT loc.name AS result, r1.chunk_id AS chunk_id
     """,
-    "MANUFACTURE_AND_RISK": """
-        MATCH (a:Company {name: $entity})-[r1:MANUFACTURES_IN]->(loc)
-        MATCH (a)-[r2:FACES_RISK]->(risk)
-        RETURN loc.name + ' (risk: ' + risk.name + ')' AS result,
-               r1.chunk_id AS chunk_id
-        LIMIT 15
-    """,
-    "OPERATES_AND_REGULATED": """
-        MATCH (a:Company {name: $entity})-[r1:OPERATES_IN]->(region)
-        MATCH (a)-[r2:REGULATED_BY]->(reg)
-        WHERE reg.name CONTAINS region.name OR region.name CONTAINS 'Europe'
-        RETURN DISTINCT reg.name AS result, r2.chunk_id AS chunk_id
-    """,
-    "COMPETITOR_LEGAL": """
-        MATCH (a:Company {name: $entity})-[r1:COMPETES_WITH]->(comp)
-        RETURN comp.name AS result, r1.chunk_id AS chunk_id
-    """,
-    "PRODUCT_IN_MANUFACTURING": """
-        MATCH (a:Company {name: $entity})-[r1:PRODUCES]->(prod)
-        MATCH (a)-[r2:MANUFACTURES_IN]->(loc)
-        RETURN prod.name + ' (made in: ' + loc.name + ')' AS result,
-               r1.chunk_id AS chunk_id
-        LIMIT 20
+    # GERÇEK: rakipler (tek ilişki ama multi-hop soru olarak gelir)
+    "COMPETITORS": """
+        MATCH (a:Company {name: $entity})-[r:COMPETES_WITH]->(comp)
+        RETURN comp.name AS result, r.chunk_id AS chunk_id
     """,
 }
 
@@ -94,15 +76,13 @@ Q: "Who regulates Apple?" -> {{"entity": "Apple", "relationship": "REGULATED_BY"
 Q: "What risks does Apple face?" -> {{"entity": "Apple", "relationship": "FACES_RISK"}}"""
 
 MULTIHOP_CLASSIFY_PROMPT = f"""You map a MULTI-HOP question to a query template.
-These questions require combining TWO relationships.
-
-Available multi-hop templates: {list(MULTIHOP_TEMPLATES.keys())}
+Available templates: {list(MULTIHOP_TEMPLATES.keys())}
 
 Template meanings:
-- MANUFACTURE_AND_REGULATED: countries where Apple both manufactures AND faces regulation
-- MANUFACTURE_AND_RISK: risks connected to Apple's manufacturing locations
-- OPERATES_AND_REGULATED: regulators in regions where Apple operates
-- COMPETITOR_LEGAL: Apple's competitors (who may be in legal proceedings)
+- MANUFACTURE_AND_OPERATE: places Apple both manufactures in AND operates in
+- REGULATOR_WITH_RISK: regulators and the risks mentioned alongside them
+- COMPETITORS: Apple's competitors
+- DEPENDENCY_CONTEXT: companies/entities Apple depends on
 
 Return JSON: {{"entity": "Apple", "template": "<one of the template names>"}}
 If none fit well, return {{"entity": "Apple", "template": "NONE"}}"""

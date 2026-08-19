@@ -40,15 +40,25 @@ def is_garbage(name: str) -> bool:
     if any(n.startswith(ref) or n == ref.strip() for ref in doc_refs):
         return True
 
-    # Kara liste (jenerik kelimeler, döküman adları)
+    # Kara liste (jenerik kelimeler, döküman adları, rakip ürünler, endeksler)
     blacklist = {
+        # jenerik kategoriler
         "products", "services", "accessories", "wearables", "smartphone",
         "smartphones", "tablet", "tablets", "personal computer",
         "personal computers", "technology", "machine learning",
         "artificial intelligence", "semiconductor", "governmental authorities",
         "board", "total", "corporate", "notes",
-        "s&p 500 index", "dow jones u.s. technology total stock market index",
+        # rakip ürünler (Apple'ın değil)
         "windows", "android", "xbox", "playstation", "nintendo",
+        # endeksler (şirket değil)
+        "s&p 500 index", "dow jones u.s. technology total stock market index",
+        # jenerik "şirket" olarak yanlış tiplenenler
+        "global semiconductor industry", "audit and finance committee",
+        "committee of sponsoring organizations of the treadway commission",
+        # menkul kıymetler / finansal araçlar (ürün değil)
+        "u.s. treasury securities", "u.s. agency securities",
+        "non-u.s. government securities", "2022 employee stock plan",
+        # döküman adları
         "2025 form 10-k", "2026 proxy statement",
     }
     if n.lower() in blacklist:
@@ -57,17 +67,43 @@ def is_garbage(name: str) -> bool:
     return False
 
 
+# ---------- TİP-KOŞULLU FİLTRE ----------
+# Bazı isimler bir tipte geçerli, başka tipte çöp.
+# Örn: "U.S. dollar" RiskFactor olarak doğru (döviz riski), Location olarak yanlış.
+TYPE_CONDITIONAL_GARBAGE = {
+    # isim (lowercase) -> bu tiplerde ATILIR
+    "u.s. dollar": {"Location", "Product", "Company"},
+    "foreign currencies": {"Location", "Company"},
+    "europe": {"Regulator"},           # kıta regülatör olamaz
+    "european union": {"Regulator"},
+    "united states": {"Regulator"},
+    "u.s.": {"Regulator"},
+    "ireland": {"Regulator"},
+}
+
+
+def is_garbage_for_type(name: str, etype: str) -> bool:
+    """İsim belirli bir tipte çöp mü? (tip-koşullu)"""
+    bad_types = TYPE_CONDITIONAL_GARBAGE.get(name.lower().strip())
+    if bad_types and etype in bad_types:
+        return True
+    return False
+
+
 # ---------- KATMAN 2: KANONİKLEŞTİRME ----------
 
 # Elle eşleme: varyasyon -> kanonik isim
 ALIAS_MAP = {
+    # şirketler
     "aapl": "Apple",
     "apple inc.": "Apple",
     "apple inc": "Apple",
     "google llc": "Google",
     "epic games, inc.": "Epic Games",
-    "eu": "European Union",
-    "sec": "SEC",
+    "the nasdaq stock market llc": "Nasdaq",
+    "ernst & young llp": "Ernst & Young",
+    "the bank of new york mellon trust company, n.a.": "BNY Mellon",
+    # regülatörler (kısaltma -> tam ad tutarlılığı: SEC'i kısa tutuyoruz)
     "securities and exchange commission": "SEC",
     "u.s. securities and exchange commission": "SEC",
     "doj": "Department of Justice",
@@ -76,8 +112,12 @@ ALIAS_MAP = {
     "dma": "Digital Markets Act",
     "fasb": "Financial Accounting Standards Board",
     "pcaob": "Public Company Accounting Oversight Board",
+    "commission": "European Commission",
+    # lokasyonlar
     "u.s.": "United States",
     "us": "United States",
+    "eu": "European Union",
+    "china mainland": "China",
 }
 
 
@@ -103,14 +143,27 @@ def resolve_all():
     clean_results = {}
     garbage_count = 0
 
+    # entity adı -> tipi (tip-koşullu ilişki filtresi için)
+    entity_type_map = {}
+
     for cid, data in results.items():
         clean_entities = []
         for e in data["entities"]:
             name = e["name"]
+            etype = e.get("type", "")
+
+            # genel çöp filtresi
             if is_garbage(name):
                 garbage_count += 1
                 continue
-            e["name"] = normalize(name)  # kanonik isme çevir
+            # tip-koşullu çöp filtresi
+            if is_garbage_for_type(name, etype):
+                garbage_count += 1
+                continue
+
+            canonical = normalize(name)
+            e["name"] = canonical
+            entity_type_map[canonical] = etype
             clean_entities.append(e)
 
         clean_relationships = []
