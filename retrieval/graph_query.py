@@ -47,6 +47,38 @@ QUERY_TEMPLATES = {
         RETURN p.name AS result, r.chunk_id AS chunk_id
     """,
 }
+# Multi-hop şablonları: iki ilişkiyi birleştiren zincir/kesişim sorguları
+MULTIHOP_TEMPLATES = {
+    "MANUFACTURE_AND_REGULATED": """
+        MATCH (a:Company {name: $entity})-[r1:MANUFACTURES_IN]->(loc)
+        MATCH (a)-[r2:REGULATED_BY]->(loc)
+        RETURN loc.name AS result, r1.chunk_id AS chunk_id
+    """,
+    "MANUFACTURE_AND_RISK": """
+        MATCH (a:Company {name: $entity})-[r1:MANUFACTURES_IN]->(loc)
+        MATCH (a)-[r2:FACES_RISK]->(risk)
+        RETURN loc.name + ' (risk: ' + risk.name + ')' AS result,
+               r1.chunk_id AS chunk_id
+        LIMIT 15
+    """,
+    "OPERATES_AND_REGULATED": """
+        MATCH (a:Company {name: $entity})-[r1:OPERATES_IN]->(region)
+        MATCH (a)-[r2:REGULATED_BY]->(reg)
+        WHERE reg.name CONTAINS region.name OR region.name CONTAINS 'Europe'
+        RETURN DISTINCT reg.name AS result, r2.chunk_id AS chunk_id
+    """,
+    "COMPETITOR_LEGAL": """
+        MATCH (a:Company {name: $entity})-[r1:COMPETES_WITH]->(comp)
+        RETURN comp.name AS result, r1.chunk_id AS chunk_id
+    """,
+    "PRODUCT_IN_MANUFACTURING": """
+        MATCH (a:Company {name: $entity})-[r1:PRODUCES]->(prod)
+        MATCH (a)-[r2:MANUFACTURES_IN]->(loc)
+        RETURN prod.name + ' (made in: ' + loc.name + ')' AS result,
+               r1.chunk_id AS chunk_id
+        LIMIT 20
+    """,
+}
 
 # Modelin soruyu hangi şablona eşleyeceğini seçtiren prompt
 CLASSIFY_PROMPT = f"""You map a question to a graph query template.
@@ -60,6 +92,20 @@ Q: "Who are Apple's executives?" -> {{"entity": "Apple", "relationship": "HAS_EX
 Q: "Where does Apple manufacture?" -> {{"entity": "Apple", "relationship": "MANUFACTURES_IN"}}
 Q: "Who regulates Apple?" -> {{"entity": "Apple", "relationship": "REGULATED_BY"}}
 Q: "What risks does Apple face?" -> {{"entity": "Apple", "relationship": "FACES_RISK"}}"""
+
+MULTIHOP_CLASSIFY_PROMPT = f"""You map a MULTI-HOP question to a query template.
+These questions require combining TWO relationships.
+
+Available multi-hop templates: {list(MULTIHOP_TEMPLATES.keys())}
+
+Template meanings:
+- MANUFACTURE_AND_REGULATED: countries where Apple both manufactures AND faces regulation
+- MANUFACTURE_AND_RISK: risks connected to Apple's manufacturing locations
+- OPERATES_AND_REGULATED: regulators in regions where Apple operates
+- COMPETITOR_LEGAL: Apple's competitors (who may be in legal proceedings)
+
+Return JSON: {{"entity": "Apple", "template": "<one of the template names>"}}
+If none fit well, return {{"entity": "Apple", "template": "NONE"}}"""
 
 
 def classify_to_template(question: str) -> dict:
@@ -103,20 +149,52 @@ def query_graph(question: str) -> dict:
         "results": results,
         "chunk_ids": list(chunk_ids),
     }
+def query_graph_multihop(question: str) -> dict:
+    """Multi-hop soruyu zincirleme şablonla çöz."""
+    resp = client.chat.completions.create(
+        model="gpt-4o-mini",
+        temperature=0,
+        messages=[
+            {"role": "system", "content": MULTIHOP_CLASSIFY_PROMPT},
+            {"role": "user", "content": question},
+        ],
+        response_format={"type": "json_object"},
+    )
+    mapping = json.loads(resp.choices[0].message.content)
+    entity = mapping.get("entity", "Apple")
+    template_name = mapping.get("template", "NONE")
 
+    if template_name == "NONE" or template_name not in MULTIHOP_TEMPLATES:
+        # Multi-hop çözülemezse tek-hop'a düş (fallback)
+        return query_graph(question)
 
+    template = MULTIHOP_TEMPLATES[template_name]
+    with driver.session() as session:
+        records = session.run(template, entity=entity)
+        results = []
+        chunk_ids = set()
+        for rec in records:
+            results.append(rec["result"])
+            if rec["chunk_id"]:
+                chunk_ids.add(rec["chunk_id"])
+
+    return {
+        "entity": entity,
+        "template": template_name,
+        "results": results,
+        "chunk_ids": list(chunk_ids),
+    }
+
+# graph_query.py içinde geçici test
 if __name__ == "__main__":
-    test_sorular = [
-        "Who are Apple's executives?",
-        "Which countries does Apple manufacture in?",
-        "What regulators oversee Apple?",
-        "Does Apple compete with anyone?",
-        "What risks does Apple face?",
+    test = [
+        "Which countries where Apple manufactures are also regulatory concerns?",
+        "What risks are related to countries where Apple manufactures?",
+        "What products does Apple make in the countries it manufactures in?",
     ]
-
-    for soru in test_sorular:
+    for soru in test:
         print(f"\nSORU: {soru}")
-        result = query_graph(soru)
-        print(f"  İlişki: {result.get('relationship')}")
-        print(f"  Sonuçlar: {result['results']}")
-        print(f"  Kaynak chunk'lar: {result['chunk_ids']}")
+        r = query_graph_multihop(soru)
+        print(f"  Şablon: {r.get('template')}")
+        print(f"  Sonuçlar: {r['results'][:10]}")
+        print(f"  chunk'lar: {r['chunk_ids'][:5]}")

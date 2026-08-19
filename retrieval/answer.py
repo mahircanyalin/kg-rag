@@ -25,16 +25,14 @@ Return JSON:
 
 
 def format_graph_context(graph_result: dict) -> str:
-    """Graf sonucunu okunabilir metne çevir."""
     entity = graph_result.get("entity", "Apple")
-    rel = graph_result.get("relationship", "")
+    rel = graph_result.get("relationship") or graph_result.get("template", "")
     results = graph_result.get("results", [])
     chunk_ids = graph_result.get("chunk_ids", [])
 
-    # Graf ilişkisini cümleye çevir
     lines = [f"Graph facts about {entity} ({rel}):"]
     for r in results:
-        lines.append(f"- {entity} {rel} {r}")
+        lines.append(f"- {r}")
     lines.append(f"Source chunks: {chunk_ids}")
     return "\n".join(lines)
 

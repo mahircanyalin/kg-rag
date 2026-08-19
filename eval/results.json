@@ -1,0 +1,275 @@
+[
+  {
+    "question": "Who is Apple's CEO?",
+    "hops": 1,
+    "hybrid_correct": true,
+    "baseline_correct": false,
+    "route": "graph"
+  },
+  {
+    "question": "Who is Apple's CFO?",
+    "hops": 1,
+    "hybrid_correct": false,
+    "baseline_correct": false,
+    "route": "graph"
+  },
+  {
+    "question": "Who are Apple's executives?",
+    "hops": 1,
+    "hybrid_correct": true,
+    "baseline_correct": false,
+    "route": "graph"
+  },
+  {
+    "question": "Who are the members of Apple's board?",
+    "hops": 1,
+    "hybrid_correct": true,
+    "baseline_correct": true,
+    "route": "graph"
+  },
+  {
+    "question": "Which countries does Apple manufacture in?",
+    "hops": 1,
+    "hybrid_correct": true,
+    "baseline_correct": true,
+    "route": "graph"
+  },
+  {
+    "question": "Does Apple manufacture in Vietnam?",
+    "hops": 1,
+    "hybrid_correct": true,
+    "baseline_correct": true,
+    "route": "graph"
+  },
+  {
+    "question": "Where does Apple source its products?",
+    "hops": 1,
+    "hybrid_correct": false,
+    "baseline_correct": true,
+    "route": "graph"
+  },
+  {
+    "question": "What regulators oversee Apple?",
+    "hops": 1,
+    "hybrid_correct": true,
+    "baseline_correct": false,
+    "route": "graph"
+  },
+  {
+    "question": "Is Apple regulated by the SEC?",
+    "hops": 1,
+    "hybrid_correct": true,
+    "baseline_correct": true,
+    "route": "graph"
+  },
+  {
+    "question": "Which European regulators are involved with Apple?",
+    "hops": 1,
+    "hybrid_correct": true,
+    "baseline_correct": false,
+    "route": "graph"
+  },
+  {
+    "question": "Does Apple compete with Google?",
+    "hops": 1,
+    "hybrid_correct": true,
+    "baseline_correct": true,
+    "route": "graph"
+  },
+  {
+    "question": "Who does Apple compete with?",
+    "hops": 1,
+    "hybrid_correct": true,
+    "baseline_correct": false,
+    "route": "graph"
+  },
+  {
+    "question": "What countries does Apple operate in?",
+    "hops": 1,
+    "hybrid_correct": true,
+    "baseline_correct": true,
+    "route": "graph"
+  },
+  {
+    "question": "What does Apple depend on?",
+    "hops": 1,
+    "hybrid_correct": false,
+    "baseline_correct": false,
+    "route": "vector"
+  },
+  {
+    "question": "What products does Apple produce?",
+    "hops": 1,
+    "hybrid_correct": true,
+    "baseline_correct": true,
+    "route": "vector"
+  },
+  {
+    "question": "What is the State Aid Decision?",
+    "hops": 1,
+    "hybrid_correct": true,
+    "baseline_correct": true,
+    "route": "vector"
+  },
+  {
+    "question": "What are Apple's cybersecurity risks?",
+    "hops": 1,
+    "hybrid_correct": true,
+    "baseline_correct": true,
+    "route": "vector"
+  },
+  {
+    "question": "What natural disaster risks does Apple face?",
+    "hops": 1,
+    "hybrid_correct": true,
+    "baseline_correct": true,
+    "route": "vector"
+  },
+  {
+    "question": "What are Apple's foreign exchange risks?",
+    "hops": 1,
+    "hybrid_correct": true,
+    "baseline_correct": true,
+    "route": "vector"
+  },
+  {
+    "question": "What tariff risks does Apple face?",
+    "hops": 1,
+    "hybrid_correct": true,
+    "baseline_correct": true,
+    "route": "vector"
+  },
+  {
+    "question": "What is the Digital Markets Act?",
+    "hops": 1,
+    "hybrid_correct": true,
+    "baseline_correct": true,
+    "route": "vector"
+  },
+  {
+    "question": "How does Apple manage information security?",
+    "hops": 1,
+    "hybrid_correct": true,
+    "baseline_correct": true,
+    "route": "vector"
+  },
+  {
+    "question": "What is Apple's approach to supplier risk?",
+    "hops": 1,
+    "hybrid_correct": true,
+    "baseline_correct": true,
+    "route": "vector"
+  },
+  {
+    "question": "What legal proceedings involve Apple?",
+    "hops": 1,
+    "hybrid_correct": false,
+    "baseline_correct": false,
+    "route": "graph"
+  },
+  {
+    "question": "Who is Apple's auditor?",
+    "hops": 1,
+    "hybrid_correct": false,
+    "baseline_correct": true,
+    "route": "graph"
+  },
+  {
+    "question": "Which countries where Apple manufactures are also regulatory concerns?",
+    "hops": 2,
+    "hybrid_correct": true,
+    "baseline_correct": false,
+    "route": "graph"
+  },
+  {
+    "question": "What risks are related to countries where Apple manufactures?",
+    "hops": 2,
+    "hybrid_correct": true,
+    "baseline_correct": false,
+    "route": "graph"
+  },
+  {
+    "question": "Which regulators are in regions where Apple operates?",
+    "hops": 2,
+    "hybrid_correct": false,
+    "baseline_correct": false,
+    "route": "graph"
+  },
+  {
+    "question": "Does Apple face regulatory risk in countries where it manufactures?",
+    "hops": 2,
+    "hybrid_correct": false,
+    "baseline_correct": false,
+    "route": "graph"
+  },
+  {
+    "question": "What is the connection between Ireland and Apple's tax risk?",
+    "hops": 2,
+    "hybrid_correct": false,
+    "baseline_correct": false,
+    "route": "graph"
+  },
+  {
+    "question": "Which competitors of Apple are also involved in legal proceedings?",
+    "hops": 2,
+    "hybrid_correct": true,
+    "baseline_correct": false,
+    "route": "graph"
+  },
+  {
+    "question": "What products does Apple make in the countries it manufactures in?",
+    "hops": 2,
+    "hybrid_correct": false,
+    "baseline_correct": true,
+    "route": "graph"
+  },
+  {
+    "question": "How do Apple's manufacturing locations relate to its tariff risks?",
+    "hops": 2,
+    "hybrid_correct": false,
+    "baseline_correct": true,
+    "route": "graph"
+  },
+  {
+    "question": "Which EU bodies regulate Apple and what is the related decision?",
+    "hops": 2,
+    "hybrid_correct": true,
+    "baseline_correct": true,
+    "route": "graph"
+  },
+  {
+    "question": "What regulatory concerns exist in Apple's largest operating regions?",
+    "hops": 2,
+    "hybrid_correct": true,
+    "baseline_correct": false,
+    "route": "graph"
+  },
+  {
+    "question": "What was Apple's revenue in 2010?",
+    "hops": 0,
+    "hybrid_correct": true,
+    "baseline_correct": true,
+    "route": "vector"
+  },
+  {
+    "question": "Who is Apple's Chief Marketing Officer?",
+    "hops": 0,
+    "hybrid_correct": true,
+    "baseline_correct": true,
+    "route": "graph"
+  },
+  {
+    "question": "What is Apple's stock price today?",
+    "hops": 0,
+    "hybrid_correct": true,
+    "baseline_correct": true,
+    "route": "vector"
+  },
+  {
+    "question": "Does Apple own a car company?",
+    "hops": 0,
+    "hybrid_correct": true,
+    "baseline_correct": true,
+    "route": "graph"
+  }
+]
