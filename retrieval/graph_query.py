@@ -35,8 +35,8 @@ QUERY_TEMPLATES = {
         RETURN risk.name AS result, r.chunk_id AS chunk_id
     """,
     "COMPETES_WITH": """
-        MATCH (c:Company {name: $entity})-[r:COMPETES_WITH]->(comp:Company)
-        RETURN comp.name AS result, r.chunk_id AS chunk_id
+    MATCH (c:Company {name: $entity})-[r:COMPETES_WITH]-(comp:Company)
+    RETURN comp.name AS result, r.chunk_id AS chunk_id
     """,
     "DEPENDS_ON": """
         MATCH (c:Company {name: $entity})-[r:DEPENDS_ON]->(x)

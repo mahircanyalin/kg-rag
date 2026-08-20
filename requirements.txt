@@ -10,3 +10,5 @@ openai
    pydantic
    requests
    beautifulsoup4
+   langgraph
+   langchain-openai

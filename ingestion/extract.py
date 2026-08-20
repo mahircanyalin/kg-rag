@@ -17,84 +17,63 @@ SYSTEM_PROMPT = f"""You are an information extraction system for SEC 10-K filing
 Extract entities and relationships from the given text chunk.
 
 CONTEXT: This filing is Apple Inc.'s 10-K. When the text says "the Company",
-"we", "our", or "the Registrant", it refers to Apple. Always use "Apple" as
-the canonical name.
+"we", "our", or "the Registrant", it refers to Apple. Use "Apple" as its canonical name.
+
+MULTI-ENTITY EXTRACTION — this is critical:
+Extract relationships between ANY two named entities, not just Apple. If the text
+says "Google is under investigation by the DOJ", extract (Google)-[REGULATED_BY]->(DOJ),
+even though Apple is not involved. Capture the full web of relationships in the text.
+- The SOURCE of a relationship is whoever the text says performs/holds it.
+- Do NOT force Apple to be the source. Google, Epic Games, regulators, and other
+  entities can all be sources of their own relationships.
 
 CRITICAL RULE — ONLY PROPER NOUNS:
 Extract ONLY specific, named entities (proper nouns). NEVER extract generic
-category words. 
-- REJECT generic words like: competitors, suppliers, vendors, customers,
-  employees, government, regulators, third parties, international, corporate,
-  manufacturing, technology, services, accessories, raw materials.
-- If a word is a common noun describing a class of things, do NOT extract it.
+category words (competitors, suppliers, customers, employees, government, etc.).
 
 ENTITY TYPE DEFINITIONS (with what to EXCLUDE):
-- Company: A specifically named business (e.g. "Apple", "Google", "Epic Games").
-  EXCLUDE generic terms like "suppliers", "competitors", "vendors".
-- Person: A named individual human (e.g. "Timothy D. Cook", "Kevan Parekh").
-  EXCLUDE roles without names ("CEO", "Board"), groups ("customers",
-  "employees"), and dates.
-- Product: A specifically named Apple product or service line (e.g. "iPhone",
-  "Apple Watch", "iCloud", "App Store"). 
-  EXCLUDE: financial instruments (notes, bonds), stock plans, dates, generic
-  terms ("smartphone", "services", "technology"), and COMPETITOR products
-  (Windows, Android, Xbox, PlayStation belong to other companies, not Apple).
-  MERGE product variants: "iPhone 17 Pro Max" -> "iPhone". Use the product FAMILY.
-- Location: A named geographic place (country, region, state, city).
-  EXCLUDE: generic words ("international", "corporate", "manufacturing"),
-  and court names (those are not locations).
-- Regulator: A named government body or regulatory authority (e.g. "SEC",
-  "European Commission", "Department of Justice").
-  EXCLUDE: generic terms ("government", "governmental authorities"),
-  laws/acts (those are not regulators), single letters.
-- RiskFactor: A specifically named risk or threat (e.g. "ransomware attacks",
-  "foreign exchange rates", "natural disasters").
-  EXCLUDE: acronyms of laws ("GAAP", "TCJA"), section titles ("Risk Factors").
-- BusinessSegment: A named reportable business segment ONLY (e.g. "Americas",
-  "Greater China", "Services", "Europe", "Japan", "Rest of Asia Pacific").
-  EXCLUDE everything else — customer types, teams, committees, partner types.
+- Company: A specifically named business (Apple, Google, Epic Games, Ernst & Young).
+  EXCLUDE generic terms, stock indices (S&P 500), and industry names.
+- Person: A named individual human (Timothy D. Cook). EXCLUDE roles without names,
+  groups, and dates.
+- Product: A specifically named Apple product/service (iPhone, iCloud, App Store).
+  EXCLUDE financial instruments, stock plans, dates, generic terms, and COMPETITOR
+  products (Windows, Android, Xbox belong to others).
+- Location: A named geographic place. EXCLUDE generic words and court names.
+- Regulator: A named government body or authority (SEC, European Commission, DOJ).
+  EXCLUDE generic terms, laws/acts, single letters, and countries/regions.
+- RiskFactor: A specifically named risk (ransomware attacks, foreign exchange rates).
+  EXCLUDE law acronyms and section titles.
+- BusinessSegment: A named reportable segment ONLY (Americas, Greater China, Services).
 
 RELATIONSHIP RULES:
 - Only use these relationship types: {RELATION_TYPES}
-- Only create a relationship if BOTH entities pass the rules above.
+- Both entities in a relationship must pass the rules above.
+- A relationship can exist between any two entities (not only Apple).
 
 Relationship usage guide:
-- OPERATES_IN: Apple sells/does business in a region (market presence)
-- MANUFACTURES_IN: Apple produces/sources goods in a location
-- DEPENDS_ON: Apple relies on a named supplier or partner
-- FACES_RISK: Apple is exposed to a named risk
-- PRODUCES: Apple makes a named product
-- REGULATED_BY: Apple is regulated by a named authority
-- COMPETES_WITH: Apple competes with a named company
-- HAS_EXECUTIVE: Apple has a named executive
-- ACQUIRED: Apple acquired a named company
+- OPERATES_IN: a company sells/does business in a region
+- MANUFACTURES_IN: a company produces/sources goods in a location
+- DEPENDS_ON: a company relies on a named supplier or partner
+- FACES_RISK: an entity is exposed to a named risk
+- PRODUCES: a company makes a named product
+- REGULATED_BY: an entity is regulated/investigated by a named authority
+- COMPETES_WITH: a company competes with another company
+- HAS_EXECUTIVE: a company has a named executive (target must be a PERSON)
+- ACQUIRED: a company acquired another company
 
-RELATIONSHIP DIRECTION — always Apple-centric:
-- Relationships flow FROM Apple TO the target. Apple is almost always the source.
-- NEVER write (OtherCompany)-[HAS_EXECUTIVE]->(Apple). An auditor, supplier, or
-  partner is not an executive of Apple.
-- HAS_EXECUTIVE target must be a named PERSON, never a company or firm.
+RELATIONSHIP DIRECTION:
+- Direction follows the text: (subject)-[RELATION]->(object).
+- HAS_EXECUTIVE target must be a named PERSON, never a company.
+- REGULATED_BY target must be a named BODY/AUTHORITY, never a country or region.
+- A continent or region is a Location, never a Regulator.
 
-TYPE CONSISTENCY:
-- A law or act (Digital Markets Act, Exchange Act, Sarbanes-Oxley) is NOT a Regulator
-  and NOT a RiskFactor. Skip it. The BODY that enforces it (European Commission, SEC)
-  is the Regulator.
-- REGULATED_BY target must be a named BODY or AUTHORITY (SEC, European Commission,
-  Department of Justice). NEVER a country, region, or continent.
-- A continent or region (United States, Europe, European Union) is a Location, never
-  a Regulator.
-  
 Return ONLY valid JSON, no markdown, no explanation.
 Output JSON schema:
 {{
-  "entities": [
-    {{"name": "...", "type": "<one of entity types>"}}
-  ],
-  "relationships": [
-    {{"source": "...", "type": "<one of relation types>", "target": "...", "confidence": 0.0-1.0}}
-  ]
+  "entities": [{{"name": "...", "type": "<entity type>"}}],
+  "relationships": [{{"source": "...", "type": "<relation type>", "target": "...", "confidence": 0.0-1.0}}]
 }}"""
-
 
 def extract_from_chunk(chunk_text: str):
     """Tek bir chunk'tan varlık ve ilişki çıkarır."""
@@ -186,8 +165,7 @@ def extract_all(chunks, start_index=25, cache_path="data/extractions.json"):
     print(f"Toplam maliyet: ${total_cost:.4f}")
     return results
 
-
 if __name__ == "__main__":
     with open("/Users/canyalinn/PycharmProjects/kg-rag/ingestion/data/apple_chunks.json", "r", encoding="utf-8") as f:
         chunks = json.load(f)
-    extract_all(chunks, start_index=17)
+    extract_all(chunks, start_index=20)
