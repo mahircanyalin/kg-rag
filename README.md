@@ -1,103 +1,114 @@
-# Hybrid Knowledge Graph + Vector RAG over SEC 10-K Filings
+# Hybrid Knowledge Graph + Vector RAG with Agentic Multi-Hop Retrieval
 
-A retrieval system that answers questions over Apple's SEC 10-K filing by routing each
-question to the right store: a **Neo4j knowledge graph** for relationship and multi-hop
-questions, and a **pgvector** store for definitions and single-passage lookups. Every
-answer is grounded in retrieved text and cites the source chunk it came from.
+A retrieval system over SEC 10-K filings that answers questions by combining a **Neo4j
+knowledge graph** (for relationships and multi-hop reasoning) with a **pgvector** store
+(for definitions and single-passage lookups). A **LangGraph ReAct agent** performs dynamic
+multi-hop traversal — following chains across entities that neither vector search nor fixed
+query templates can handle. Every answer is grounded in retrieved text and cites its source.
 
-The point of the project is not "another vector RAG." It is to show *where embeddings
-fail* — multi-hop questions that require following a chain across related entities — and
-what to do about it.
+The goal isn't "another vector RAG." It's to show precisely *where embeddings fail*
+(multi-hop questions) and to solve it with an agent that reasons over the graph step by step.
 
-## Benchmark: Hybrid vs. Vector-only Baseline
+## Benchmark: Three Retrieval Strategies
 
-Both systems were run on the same 39-question set, stratified by hop count. Accuracy is
-measured by keyword-match against expected answers. Out-of-scope questions (hop 0) test
-whether the system correctly refuses to answer information not in the filing.
+All three systems were run on the same 60-question set, stratified by hop count. Accuracy is
+keyword-match against expected answers; hop 0 questions are out-of-scope (testing whether the
+system refuses to answer information not in the filing).
 
-| Hops | Hybrid (Graph + Vector) | Vector-only Baseline | Δ |
-|------|-------------------------|----------------------|-----|
-| 0 (out-of-scope) | 100% (4/4) | 100% (4/4) | +0% |
-| 1 (single-hop) | 80% (20/25) | 68% (17/25) | **+12%** |
-| 2 (multi-hop) | 50% (5/10) | 30% (3/10) | **+20%** |
+| Hops | Vector-only | Template-Hybrid | **Agent** |
+|------|-------------|-----------------|-----------|
+| 0 (out-of-scope) | 100% (6/6) | 100% (6/6) | **100% (6/6)** |
+| 1 (single-hop) | 70% (21/30) | 80% (24/30) | **90% (27/30)** |
+| 2 (multi-hop) | 50% (5/10) | 60% (6/10) | **100% (10/10)** |
+| 3 (triple-hop) | 33% (1/3) | 0% (0/3) | **100% (3/3)** |
+| **Overall** | **67% (33/49)** | **73% (36/49)** | **94% (46/49)** |
 
-The expected shape holds: parity on out-of-scope questions (neither system hallucinates),
-a modest edge on single-hop questions, and a **widening gap as hops increase**. That curve
-is the whole story — the graph earns its cost precisely where vector search cannot follow
-relationships across entities.
+The story is in the last two rows. Fixed query templates score **0% on triple-hop** — they
+can't compose arbitrary chains. Vector search degrades as hops increase. Only the agent,
+which reasons over the graph and chains lookups dynamically, holds at 100%. All three refuse
+out-of-scope questions correctly (no hallucination).
 
 ## What It Does
 
-A standard vector RAG chunks documents, embeds them, and retrieves the passages most
-similar to a question. This works well for single-fact questions like *"What is the State
-Aid Decision?"* — the answer lives in one passage.
+A standard vector RAG retrieves the passages most similar to a question. This works for
+single-fact questions like *"What is the State Aid Decision?"* — the answer is in one passage.
 
-It fails on questions like *"Which countries where Apple manufactures are also regulatory
-concerns?"* The answer isn't in any single passage; it requires intersecting two
-relationships (manufacturing locations ∩ regulatory concerns). Embedding similarity can't
-do this. A graph can.
+It fails on *"Who regulates the company Apple depends on for search?"* The answer requires
+following a chain: Apple -> depends on -> Google -> regulated by -> Department of Justice. No
+single passage contains this; embedding similarity can't traverse it.
 
-This system combines both:
+This system combines three ideas:
 
-- **Knowledge Graph (Neo4j)** — entities as nodes, relationships as edges. Answers
-  connection and multi-hop questions by traversing the graph.
-- **Vector store (pgvector)** — semantic passage search. Answers definitions and
-  single-fact lookups.
-- **Router** — a lightweight classifier decides, per question, which store to use.
-- **Grounded generation** — the LLM answers *only* from retrieved context and every
-  citation is validated against chunks that were actually retrieved. Invented sources are
-  rejected.
+- **Knowledge Graph (Neo4j)** — entities as nodes, relationships as edges. Extracted with a
+  multi-entity approach so the graph captures relationships between *any* two entities
+  (e.g. `Google -> REGULATED_BY -> DOJ`), not just Apple-centric ones. This is what makes real
+  chains possible.
+- **Vector store (pgvector)** — semantic passage search for definitions and single facts.
+- **LangGraph ReAct agent** — a reason -> act -> observe loop. The agent decides which lookup
+  to run, inspects the result, and chains further lookups until it can answer. It uses the
+  graph and vector queries as tools rather than following a fixed script.
 
-The key design decision: both stores share the same `chunk_id`. That shared key is what
-lets the system cross from a graph path back to the original text, and cite the exact
-source sentence for every claim.
+Both stores share the same `chunk_id`, so every claim traces back to the exact source text.
 
 ## Architecture
 
 ```
 INGESTION (once)
-  SEC EDGAR 10-K ─► clean + chunk ─► LLM extraction ─► entity resolution
-                                            │
-                          ┌─────────────────┴─────────────────┐
-                          ▼                                    ▼
-                   Neo4j (graph)                      pgvector (embeddings)
-                   relationships                      passages, HNSW index
-                          └────────── shared chunk_id ─────────┘
+  SEC EDGAR 10-K -> clean + chunk -> GPT-4o extraction -> resolution + filtering
+                                          |               (garbage, type-conditional,
+                                          |                direction validation)
+                        +-----------------+-----------------+
+                        v                                   v
+                 Neo4j (graph)                     pgvector (embeddings)
+                 multi-entity relations            passages, HNSW index
+                        +---------- shared chunk_id ---------+
 
-QUERY (per question)
-  question ─► router ─► graph query  (connection / multi-hop)
-                    └─► vector query (definition / single-fact)
-                                │
-                                ▼
-                    grounded answer + validated citations ─► FastAPI /ask
+QUERY - Agent (per question)
+  question -> [reason] -> needs data? -> [act: graph_lookup / vector_lookup]
+                 ^                              |
+                 +------------- loop -----------+
+                 |
+                 +-> enough? -> [answer + validated citations] -> FastAPI /ask
 ```
 
-### Pipeline
+### Agent loop
 
-1. **Ingestion** — Fetch the latest 10-K from SEC EDGAR, strip HTML, chunk with overlap,
-   and assign each chunk a stable `chunk_id`.
-2. **Extraction** — Each chunk is passed to `gpt-4o-mini` with a constrained ontology
-   (7 entity types, 9 relationship types) and a strict JSON schema. Every response is
-   validated against the ontology; garbage (dates, numbers, generic nouns) is filtered.
-3. **Entity resolution** — Variants collapse to canonical names (`Apple Inc.`, `AAPL` →
-   `Apple`) via a rule-based normalizer plus an alias map.
-4. **Graph loading** — Entities become nodes and relationships become edges via `MERGE`
-   (idempotent). Each edge carries the `chunk_id` that justified it.
-5. **Vector loading** — The same chunks are embedded locally (`all-MiniLM-L6-v2`, 384-dim)
-   into pgvector with an HNSW cosine index.
-6. **Routing & retrieval** — The router classifies each question. Graph questions run
-   **parameterized Cypher templates** (the model never writes raw Cypher — a security and
-   reproducibility control). Multi-hop questions run chained/intersection templates.
-7. **Answer generation** — Retrieved context is passed to the LLM with instructions to
-   answer only from context and cite every claim; citations are validated post-hoc.
+The agent's power is the loop. For *"Who regulates Google, which Apple depends on?"*:
+
+1. **reason** -> "find what Apple depends on" -> `graph_lookup(Apple, DEPENDS_ON)` -> Google
+2. **reason** -> "find Google's regulator" -> `graph_lookup(Google, REGULATED_BY)` -> DOJ
+3. **reason** -> "enough" -> **answer** with citations
+
+No template encodes this chain — the agent composes it. A deterministic guard prevents
+repeating failed lookups, and the reasoning step runs on GPT-4o for reliable planning.
+
+## Engineering Iterations
+
+This system went through measured iterations, each validated against the benchmark:
+
+1. **Baseline (GPT-4o-mini extraction):** Worked, but the graph carried extraction noise
+   (mis-typed entities, laws tagged as regulators).
+2. **Upgraded to GPT-4o + type-conditional filtering:** Cleaner graph (Company nodes 13->6),
+   1-hop accuracy rose to +20% over baseline. A value like `U.S. dollar` is kept as a
+   RiskFactor but dropped as a Location — filtering by context, not blanket blacklist.
+3. **Discovered template-based multi-hop was fragile:** Some "intersection" templates were
+   actually producing meaningless cartesian products. Measured this, removed them.
+4. **Made extraction multi-entity:** Relationships now flow between any two entities, not
+   just from Apple. This added the real chains (`Google -> DOJ`) that multi-hop needs.
+5. **Added direction validation:** Freeing the source introduced reversed edges
+   (`Regulator -> Company`). A deterministic rule — only Company/Person can be a relationship
+   source — fixed this without another extraction pass.
+6. **Built the LangGraph agent:** Replaced fixed templates with dynamic traversal. Triple-hop
+   went from 0% (templates) to 100% (agent).
 
 ## Tech Stack
 
 - **Python**, **FastAPI** — API layer
-- **Neo4j** — knowledge graph, Cypher queries
-- **PostgreSQL + pgvector** — vector store, HNSW index
-- **OpenAI `gpt-4o-mini`** — extraction, routing, answer generation
-- **sentence-transformers** (`all-MiniLM-L6-v2`) — local embeddings (no API cost)
+- **LangGraph** — ReAct agent orchestration (StateGraph, conditional edges, loop)
+- **Neo4j** — knowledge graph, parameterized Cypher
+- **PostgreSQL + pgvector** — vector store, HNSW cosine index
+- **OpenAI GPT-4o / GPT-4o-mini** — extraction, reasoning, generation
+- **sentence-transformers** (`all-MiniLM-L6-v2`) — local embeddings, no API cost
 - **Docker** — Neo4j and pgvector containers
 
 ## Setup
@@ -105,90 +116,63 @@ QUERY (per question)
 **Prerequisites:** Docker, Python 3.11+, an OpenAI API key.
 
 ```bash
-# 1. Start databases
+# Databases
 docker run -d --name neo4j-rag -p 7474:7474 -p 7687:7687 \
-  -e NEO4J_AUTH=neo4j/password123 neo4j:5-community
-
+  -e NEO4J_AUTH=neo4j/yourpassword neo4j:5-community
 docker run -d --name pgvector-rag -p 5433:5432 \
-  -e POSTGRES_PASSWORD=password123 pgvector/pgvector:pg16
+  -e POSTGRES_PASSWORD=yourpassword pgvector/pgvector:pg16
 
-# 2. Install dependencies
 pip install -r requirements.txt
-
-# 3. Configure .env (see .env.example)
-#    OPENAI_API_KEY, NEO4J_*, POSTGRES_*
+# configure .env: OPENAI_API_KEY, NEO4J_*, POSTGRES_*
 ```
 
-### Run the pipeline
+### Run
 
 ```bash
-# Ingestion (Phase 1-2)
-python ingestion/fetch_sec.py          # download 10-K
-python ingestion/clean_and_chunk.py    # clean + chunk
-python ingestion/extract.py            # LLM extraction
-python ingestion/resolve_entities.py   # entity resolution
-python ingestion/load_neo4j.py         # load graph
-python retrieval/load_pgvector.py      # load vectors
+# Ingestion
+python ingestion/fetch_sec.py
+python ingestion/clean_and_chunk.py
+python ingestion/extract.py
+python ingestion/resolve_entities.py
+python ingestion/load_neo4j.py
+python retrieval/load_pgvector.py
 
-# Serve the API
-cd api && python -m uvicorn main:app --reload
-# then open http://localhost:8000/docs
+# Agent (interactive)
+cd retrieval && python agent.py
 
-# Run the benchmark
-cd eval && python benchmark.py
-```
+# API
+cd api && python -m uvicorn main:app --reload    # http://localhost:8000/docs
 
-### Example query
-
-```bash
-curl -X POST http://localhost:8000/ask \
-  -H "Content-Type: application/json" \
-  -d '{"question": "Who are Apple'\''s executives?"}'
-```
-
-```json
-{
-  "question": "Who are Apple's executives?",
-  "route": "graph",
-  "answer": "Apple's executives include Timothy D. Cook, Kevan Parekh, Chris Kondo, ... [chunk_0258].",
-  "citations": ["chunk_0258"],
-  "invalid_citations": []
-}
+# Benchmark (all three systems)
+cd eval && python benchmark_triple.py
 ```
 
 ## Ontology
 
-**Entity types (7):** Company, Person, Product, Location, RiskFactor, Regulator,
-BusinessSegment
+**Entities (7):** Company, Person, Product, Location, RiskFactor, Regulator, BusinessSegment
 
-**Relationship types (9):** OPERATES_IN, DEPENDS_ON, MANUFACTURES_IN, PRODUCES,
-FACES_RISK, REGULATED_BY, COMPETES_WITH, HAS_EXECUTIVE, ACQUIRED
+**Relationships (9):** OPERATES_IN, DEPENDS_ON, MANUFACTURES_IN, PRODUCES, FACES_RISK,
+REGULATED_BY, COMPETES_WITH, HAS_EXECUTIVE, ACQUIRED
 
-The ontology is deliberately constrained. An open-ended "extract all entities" prompt
-produces a graph nobody can query; a closed list keeps the graph clean and queryable.
+The ontology is deliberately constrained. An open-ended "extract everything" prompt produces
+an unqueryable graph; a closed schema keeps it clean.
 
 ## Honest Limitations
 
-This is a working system, not a polished product. Where it falls short is documented
-because that's what makes the accuracy claim credible:
+Documented because it's what makes the accuracy numbers credible:
 
-- **Multi-hop is template-based, not general.** Chained queries work for the intersection
-  patterns defined as templates (manufacturing ∩ regulation, competitors in legal
-  proceedings). Truly arbitrary multi-hop reasoning isn't solved — see the two 2-hop
-  questions the hybrid still loses.
-- **Extraction noise remains.** LLM extraction over a 10-K leaves a small amount of
-  mis-typed entities (e.g. a law tagged as both Regulator and RiskFactor, a duplicate
-  node). Filtering catches most, not all.
-- **Single document.** The current graph is built from one Apple 10-K. The architecture
-  supports multiple filings (entity resolution and `MERGE` are already idempotent), but
-  cross-company relationships aren't exercised yet.
+- **Multi-hop is bounded by graph density.** The agent can only traverse edges that exist.
+  From a single filing, some chains are sparse — e.g. Epic Games has no regulator edge, so
+  "who regulates Apple's competitor?" correctly returns "not found." A multi-document corpus
+  would enrich the graph naturally.
+- **Extraction noise remains.** A few mis-typed entities survive filtering (a court tagged as
+  both Location and Regulator). LLM extraction is not perfect; the filters catch most.
+- **Agent latency and cost.** Each multi-hop question is several LLM calls (reasoning on
+  GPT-4o). Fine for accuracy-critical use, not for high-throughput low-latency serving.
 
-## Roadmap / Stretch Goals
+## Roadmap
 
-- **LangGraph orchestration** — the pipeline is currently a linear function chain. Moving
-  to LangGraph would enable a low-confidence fallback (run both paths and merge), a retry
-  node on failed citation validation, and true multi-step multi-hop traversal. The
-  benchmark's 2-hop results are the concrete motivation for this.
-- **Incremental graph updates** instead of full re-ingestion.
-- **Expand the corpus** to multiple companies' filings to exercise cross-entity multi-hop.
-- **LLM-as-judge evaluation** to complement the current keyword-match scoring.
+- **Multi-document corpus** to exercise cross-company chains and denser graphs.
+- **Confidence-weighted edges** so the agent prefers high-confidence relationships.
+- **Caching / smaller reasoning model** to reduce agent latency and cost.
+- **LLM-as-judge evaluation** to complement keyword-match scoring.
