@@ -1,0 +1,345 @@
+[
+  {
+    "question": "Who is Apple's CEO?",
+    "hops": 1,
+    "vector": false,
+    "hybrid": true,
+    "agent": true
+  },
+  {
+    "question": "Who is Apple's CFO?",
+    "hops": 1,
+    "vector": false,
+    "hybrid": false,
+    "agent": false
+  },
+  {
+    "question": "Who are Apple's executives?",
+    "hops": 1,
+    "vector": false,
+    "hybrid": true,
+    "agent": true
+  },
+  {
+    "question": "Who are the members of Apple's board of directors?",
+    "hops": 1,
+    "vector": true,
+    "hybrid": true,
+    "agent": true
+  },
+  {
+    "question": "Who chairs Apple's board?",
+    "hops": 1,
+    "vector": true,
+    "hybrid": false,
+    "agent": true
+  },
+  {
+    "question": "Which countries does Apple manufacture in?",
+    "hops": 1,
+    "vector": true,
+    "hybrid": true,
+    "agent": true
+  },
+  {
+    "question": "Does Apple manufacture in Vietnam?",
+    "hops": 1,
+    "vector": true,
+    "hybrid": true,
+    "agent": true
+  },
+  {
+    "question": "Does Apple manufacture in Taiwan?",
+    "hops": 1,
+    "vector": true,
+    "hybrid": true,
+    "agent": true
+  },
+  {
+    "question": "Where does Apple source its components?",
+    "hops": 1,
+    "vector": true,
+    "hybrid": false,
+    "agent": true
+  },
+  {
+    "question": "What regulators oversee Apple?",
+    "hops": 1,
+    "vector": false,
+    "hybrid": true,
+    "agent": true
+  },
+  {
+    "question": "Is Apple regulated by the SEC?",
+    "hops": 1,
+    "vector": true,
+    "hybrid": true,
+    "agent": true
+  },
+  {
+    "question": "Which European bodies regulate Apple?",
+    "hops": 1,
+    "vector": false,
+    "hybrid": true,
+    "agent": true
+  },
+  {
+    "question": "Does the Department of Justice regulate Apple?",
+    "hops": 1,
+    "vector": true,
+    "hybrid": true,
+    "agent": true
+  },
+  {
+    "question": "Who does Apple compete with?",
+    "hops": 1,
+    "vector": false,
+    "hybrid": true,
+    "agent": true
+  },
+  {
+    "question": "What countries does Apple operate in?",
+    "hops": 1,
+    "vector": true,
+    "hybrid": true,
+    "agent": true
+  },
+  {
+    "question": "What does Apple depend on?",
+    "hops": 1,
+    "vector": false,
+    "hybrid": false,
+    "agent": true
+  },
+  {
+    "question": "What products does Apple produce?",
+    "hops": 1,
+    "vector": true,
+    "hybrid": true,
+    "agent": true
+  },
+  {
+    "question": "Does Apple make the Apple Watch?",
+    "hops": 1,
+    "vector": true,
+    "hybrid": true,
+    "agent": true
+  },
+  {
+    "question": "Who is Apple's auditor?",
+    "hops": 1,
+    "vector": true,
+    "hybrid": true,
+    "agent": true
+  },
+  {
+    "question": "What business segments does Apple report?",
+    "hops": 1,
+    "vector": false,
+    "hybrid": false,
+    "agent": false
+  },
+  {
+    "question": "What is the State Aid Decision?",
+    "hops": 1,
+    "vector": true,
+    "hybrid": true,
+    "agent": true
+  },
+  {
+    "question": "What are Apple's cybersecurity risks?",
+    "hops": 1,
+    "vector": true,
+    "hybrid": true,
+    "agent": true
+  },
+  {
+    "question": "What natural disaster risks does Apple face?",
+    "hops": 1,
+    "vector": true,
+    "hybrid": true,
+    "agent": true
+  },
+  {
+    "question": "What are Apple's foreign exchange risks?",
+    "hops": 1,
+    "vector": true,
+    "hybrid": true,
+    "agent": true
+  },
+  {
+    "question": "What is the Digital Markets Act?",
+    "hops": 1,
+    "vector": true,
+    "hybrid": true,
+    "agent": true
+  },
+  {
+    "question": "How does Apple manage information security?",
+    "hops": 1,
+    "vector": true,
+    "hybrid": true,
+    "agent": true
+  },
+  {
+    "question": "What credit risks does Apple face?",
+    "hops": 1,
+    "vector": true,
+    "hybrid": true,
+    "agent": true
+  },
+  {
+    "question": "What legal proceedings involve Apple?",
+    "hops": 1,
+    "vector": false,
+    "hybrid": false,
+    "agent": false
+  },
+  {
+    "question": "What tax matters affect Apple?",
+    "hops": 1,
+    "vector": true,
+    "hybrid": true,
+    "agent": true
+  },
+  {
+    "question": "What interest rate risks does Apple face?",
+    "hops": 1,
+    "vector": true,
+    "hybrid": true,
+    "agent": true
+  },
+  {
+    "question": "Who regulates Google, which Apple depends on?",
+    "hops": 2,
+    "vector": false,
+    "hybrid": true,
+    "agent": true
+  },
+  {
+    "question": "What is Apple's relationship with Google and who regulates Google?",
+    "hops": 2,
+    "vector": true,
+    "hybrid": false,
+    "agent": true
+  },
+  {
+    "question": "Which regulator oversees the company Apple depends on for search?",
+    "hops": 2,
+    "vector": false,
+    "hybrid": false,
+    "agent": true
+  },
+  {
+    "question": "What legal risk does Google, an Apple partner, face?",
+    "hops": 2,
+    "vector": true,
+    "hybrid": true,
+    "agent": true
+  },
+  {
+    "question": "Which countries does Apple both manufacture in and operate in?",
+    "hops": 2,
+    "vector": true,
+    "hybrid": true,
+    "agent": true
+  },
+  {
+    "question": "In which locations does Apple both produce and sell?",
+    "hops": 2,
+    "vector": false,
+    "hybrid": true,
+    "agent": true
+  },
+  {
+    "question": "Who audits Apple and where do they operate?",
+    "hops": 2,
+    "vector": true,
+    "hybrid": false,
+    "agent": true
+  },
+  {
+    "question": "What risk is connected to the company Apple competes with?",
+    "hops": 2,
+    "vector": false,
+    "hybrid": true,
+    "agent": true
+  },
+  {
+    "question": "Which regulator handles both Apple and Google matters?",
+    "hops": 2,
+    "vector": false,
+    "hybrid": false,
+    "agent": true
+  },
+  {
+    "question": "What court is involved with Google's regulation?",
+    "hops": 2,
+    "vector": true,
+    "hybrid": true,
+    "agent": true
+  },
+  {
+    "question": "Who regulates the company that Apple depends on for search, and what legal risk does that company face?",
+    "hops": 3,
+    "vector": false,
+    "hybrid": false,
+    "agent": true
+  },
+  {
+    "question": "For the company Apple depends on, identify its regulator and the court involved.",
+    "hops": 3,
+    "vector": false,
+    "hybrid": false,
+    "agent": true
+  },
+  {
+    "question": "Trace Apple's dependency on Google to Google's regulator to the associated court.",
+    "hops": 3,
+    "vector": true,
+    "hybrid": false,
+    "agent": true
+  },
+  {
+    "question": "What was Apple's total revenue in 2015?",
+    "hops": 0,
+    "vector": true,
+    "hybrid": true,
+    "agent": true
+  },
+  {
+    "question": "Who is Apple's Chief Marketing Officer?",
+    "hops": 0,
+    "vector": true,
+    "hybrid": true,
+    "agent": true
+  },
+  {
+    "question": "What is Apple's current stock price?",
+    "hops": 0,
+    "vector": true,
+    "hybrid": true,
+    "agent": true
+  },
+  {
+    "question": "Does Apple own a movie studio?",
+    "hops": 0,
+    "vector": true,
+    "hybrid": true,
+    "agent": true
+  },
+  {
+    "question": "What is Apple's employee headcount by country?",
+    "hops": 0,
+    "vector": true,
+    "hybrid": true,
+    "agent": true
+  },
+  {
+    "question": "When was Apple founded?",
+    "hops": 0,
+    "vector": true,
+    "hybrid": true,
+    "agent": true
+  }
+]
